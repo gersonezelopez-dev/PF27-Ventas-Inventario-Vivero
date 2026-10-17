@@ -9,5 +9,4 @@ public class Pf26ViveroApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(Pf26ViveroApplication.class, args);
 	}
-
 }
