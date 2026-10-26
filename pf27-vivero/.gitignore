@@ -31,3 +31,31 @@ build/
 
 ### VS Code ###
 .vscode/
+
+
+# Archivos temporales
+out/
+*.log
+error-inicio.txt
+diagnostico.txt
+
+# Credenciales y configuraciones privadas
+.env
+.env.*
+
+
+# Configuraciones locales
+.idea/
+out/
+*.iml
+
+# Archivos temporales
+*.log
+error-inicio.txt
+diagnostico.txt
+
+# Credenciales privadas
+.env
+.env.*
+
+

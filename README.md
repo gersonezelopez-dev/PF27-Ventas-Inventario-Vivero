@@ -82,11 +82,11 @@ La aplicación utiliza una base de datos PostgreSQL.
 
 Nombre de la base de datos de desarrollo:
 
-`vivero_pf26`
+`vivero_pf27`
 
 Dirección de conexión:
 
-`jdbc:postgresql://localhost:5432/vivero_pf26`
+`jdbc:postgresql://localhost:5432/vivero_pf27`
 
 Usuario configurado:
 

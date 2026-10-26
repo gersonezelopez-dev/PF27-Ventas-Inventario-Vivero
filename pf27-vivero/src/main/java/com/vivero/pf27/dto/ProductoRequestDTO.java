@@ -1,9 +1,10 @@
+
 package com.vivero.pf27.dto;
 
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
-public class DProductoRequestDTO {
+public class ProductoRequestDTO {
 
     @NotBlank(message = "El codigo es obligatorio")
     @Size(max = 30, message = "El codigo no puede superar 30 caracteres")
@@ -15,7 +16,8 @@ public class DProductoRequestDTO {
 
     @NotNull(message = "El precio es obligatorio")
     @DecimalMin(value = "0.01", message = "El precio debe ser mayor que cero")
-    @Digits(integer = 8, fraction = 2, message = "El precio debe tener maximo 8 enteros y 2 decimales")
+    @Digits(integer = 8, fraction = 2,
+            message = "El precio debe tener maximo 8 enteros y 2 decimales")
     private BigDecimal precio;
 
     @NotNull(message = "El stock es obligatorio")
