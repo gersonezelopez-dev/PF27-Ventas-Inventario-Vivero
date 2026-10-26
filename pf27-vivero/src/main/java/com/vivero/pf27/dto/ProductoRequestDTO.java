@@ -3,7 +3,7 @@ package com.vivero.pf27.dto;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 
-public class ProductoRequestDTO {
+public class DProductoRequestDTO {
 
     @NotBlank(message = "El codigo es obligatorio")
     @Size(max = 30, message = "El codigo no puede superar 30 caracteres")

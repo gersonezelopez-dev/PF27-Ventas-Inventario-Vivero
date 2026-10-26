@@ -8,6 +8,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.math.BigDecimal;
+import java.util.Map;
 
 import java.util.List;
 
@@ -55,4 +59,31 @@ public class VentaController {
         return ResponseEntity.ok(
                 ventaService.anular(id));
     }
+
+    @GetMapping("/fecha")
+    public ResponseEntity<List<Venta>> consultarPorFecha(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fecha) {
+
+        return ResponseEntity.ok(
+                ventaService.consultarPorFecha(fecha));
+    }
+
+    // Consultar total vendido durante un dia
+    @GetMapping("/total-dia")
+    public ResponseEntity<Map<String, Object>> totalDia(
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate fecha) {
+
+        BigDecimal total =
+                ventaService.totalVendidoPorFecha(fecha);
+
+        return ResponseEntity.ok(Map.of(
+                "fecha", fecha.toString(),
+                "totalVendido", total
+        ));
+    }
+
 }

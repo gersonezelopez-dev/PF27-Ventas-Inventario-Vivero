@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(estado).body(error);
     }
 
-    // Errores de datos o reglas de negocio
+    // Errores de reglas de negocio
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> argumentoInvalido(
             IllegalArgumentException ex) {
@@ -40,19 +40,35 @@ public class GlobalExceptionHandler {
         return respuesta(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    // Errores de validacion de los DTO
+    // Recurso inexistente: 404
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    public ResponseEntity<Map<String, Object>> recursoNoEncontrado(
+            RecursoNoEncontradoException ex) {
+
+        return respuesta(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    // Errores de validacion: 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> validacion(
             MethodArgumentNotValidException ex) {
 
-        String mensaje = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": "
-                        + error.getDefaultMessage())
-                .findFirst()
-                .orElse("Datos invalidos");
+        Map<String, String> errores = new LinkedHashMap<>();
 
-        return respuesta(HttpStatus.BAD_REQUEST, mensaje);
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                errores.putIfAbsent(
+                        error.getField(),
+                        error.getDefaultMessage()
+                )
+        );
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("estado", 400);
+        respuesta.put("mensaje", "Los datos enviados no son validos");
+        respuesta.put("errores", errores);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(respuesta);
     }
 }

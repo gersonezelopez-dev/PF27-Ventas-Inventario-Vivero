@@ -10,6 +10,10 @@ import com.vivero.pf27.repository.ProductoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
+import com.vivero.pf27.exception.RecursoNoEncontradoException;
+
+
 import java.util.List;
 
 @Service
@@ -91,6 +95,11 @@ public class ProductoService {
         producto.setActivo(false);
         productoRepository.save(producto);
     }
+    @Transactional
+    public void eliminar(Long id) {
+        desactivar(id);
+    }
+
 
     @Transactional(readOnly = true)
     public List<ProductoResponseDTO> buscarPorCategoria(Long categoriaId) {
@@ -117,16 +126,23 @@ public class ProductoService {
                 .toList();
     }
 
+
     private Producto obtenerProducto(Long id) {
         return productoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Producto no encontrado con ID: " + id));
+                .orElseThrow(() ->
+                        new RecursoNoEncontradoException(
+                                "Producto no encontrado con ID: " + id
+                        )
+                );
     }
 
     private Categoria obtenerCategoria(Long id) {
         return categoriaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Categoria no encontrada con ID: " + id));
+                .orElseThrow(() ->
+                        new RecursoNoEncontradoException(
+                                "Categoria no encontrada con ID: " + id
+                        )
+                );
     }
 
     private ProductoResponseDTO convertirDTO(Producto producto) {

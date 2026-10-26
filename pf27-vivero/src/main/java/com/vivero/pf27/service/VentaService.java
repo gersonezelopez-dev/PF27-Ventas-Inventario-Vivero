@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.time.LocalDate;
 
 @Service
 public class VentaService {
@@ -192,8 +193,31 @@ public class VentaService {
             productoRepository.save(producto);
         }
 
+
         venta.setEstado("ANULADA");
 
         return ventaRepository.save(venta);
     }
+
+    // Consultar ventas por fecha
+    @Transactional(readOnly = true)
+    public List<Venta> consultarPorFecha(LocalDate fecha) {
+
+        LocalDateTime inicio = fecha.atStartOfDay();
+        LocalDateTime fin = fecha.plusDays(1).atStartOfDay();
+
+        return ventaRepository.buscarPorRangoFechas(inicio, fin);
+    }
+    @Transactional(readOnly = true)
+    public BigDecimal totalVendidoPorFecha(LocalDate fecha) {
+
+        List<Venta> ventas = consultarPorFecha(fecha);
+
+        return ventas.stream()
+                .filter(venta ->
+                        "REGISTRADA".equals(venta.getEstado()))
+                .map(Venta::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
 }
