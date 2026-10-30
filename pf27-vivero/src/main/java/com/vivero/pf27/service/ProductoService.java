@@ -6,13 +6,10 @@ import com.vivero.pf27.entity.Categoria;
 import com.vivero.pf27.entity.Producto;
 import com.vivero.pf27.repository.CategoriaRepository;
 import com.vivero.pf27.repository.ProductoRepository;
+import com.vivero.pf27.exception.RecursoNoEncontradoException;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
-import com.vivero.pf27.exception.RecursoNoEncontradoException;
-
 
 import java.util.List;
 
@@ -25,23 +22,31 @@ public class ProductoService {
     public ProductoService(
             ProductoRepository productoRepository,
             CategoriaRepository categoriaRepository) {
+
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
     }
 
+    // Consultar todos los productos
     @Transactional(readOnly = true)
     public List<ProductoResponseDTO> listar() {
-        return productoRepository.findAll().stream()
+
+        return productoRepository.findAll()
+                .stream()
                 .map(this::convertirDTO)
                 .toList();
     }
 
+    // Buscar producto por ID
     @Transactional(readOnly = true)
     public ProductoResponseDTO buscarPorId(Long id) {
+
         Producto producto = obtenerProducto(id);
+
         return convertirDTO(producto);
     }
 
+    // Registrar un producto
     @Transactional
     public ProductoResponseDTO registrar(ProductoRequestDTO dto) {
 
@@ -52,9 +57,11 @@ public class ProductoService {
                     "Ya existe un producto con ese codigo");
         }
 
-        Categoria categoria = obtenerCategoria(dto.getCategoriaId());
+        Categoria categoria =
+                obtenerCategoria(dto.getCategoriaId());
 
         Producto producto = new Producto();
+
         producto.setCodigo(codigo);
         producto.setNombre(dto.getNombre().trim());
         producto.setPrecio(dto.getPrecio());
@@ -65,6 +72,7 @@ public class ProductoService {
         return convertirDTO(productoRepository.save(producto));
     }
 
+    // Actualizar informacion del producto sin cambiar stock
     @Transactional
     public ProductoResponseDTO actualizar(
             Long id, ProductoRequestDTO dto) {
@@ -72,62 +80,89 @@ public class ProductoService {
         Producto producto = obtenerProducto(id);
         String codigo = dto.getCodigo().trim();
 
+        // Validar que el codigo no este duplicado
         if (!producto.getCodigo().equals(codigo)
                 && productoRepository.existsByCodigo(codigo)) {
+
             throw new IllegalArgumentException(
                     "Ya existe un producto con ese codigo");
         }
 
-        Categoria categoria = obtenerCategoria(dto.getCategoriaId());
+        // Buscar la categoria correspondiente
+        Categoria categoria =
+                obtenerCategoria(dto.getCategoriaId());
 
+        // Evitar cambios directos de existencias
+        if (!producto.getStock().equals(dto.getStock())) {
+
+            throw new IllegalArgumentException(
+                    "El stock no puede modificarse desde " +
+                            "la actualizacion del producto. " +
+                            "Utilice un movimiento de inventario.");
+        }
+
+        // Actualizar datos generales
         producto.setCodigo(codigo);
         producto.setNombre(dto.getNombre().trim());
         producto.setPrecio(dto.getPrecio());
-        producto.setStock(dto.getStock());
         producto.setCategoria(categoria);
 
         return convertirDTO(productoRepository.save(producto));
     }
 
+    // Desactivar un producto
     @Transactional
     public void desactivar(Long id) {
+
         Producto producto = obtenerProducto(id);
+
         producto.setActivo(false);
+
         productoRepository.save(producto);
     }
+
+    // Eliminacion logica del producto
     @Transactional
     public void eliminar(Long id) {
+
         desactivar(id);
     }
 
-
+    // Consultar productos por categoria
     @Transactional(readOnly = true)
-    public List<ProductoResponseDTO> buscarPorCategoria(Long categoriaId) {
+    public List<ProductoResponseDTO> buscarPorCategoria(
+            Long categoriaId) {
 
         obtenerCategoria(categoriaId);
 
-        return productoRepository.findByCategoriaId(categoriaId)
+        return productoRepository
+                .findByCategoriaId(categoriaId)
                 .stream()
                 .map(this::convertirDTO)
                 .toList();
     }
 
+    // Consultar productos con stock bajo
     @Transactional(readOnly = true)
-    public List<ProductoResponseDTO> buscarStockBajo(Integer limite) {
+    public List<ProductoResponseDTO> buscarStockBajo(
+            Integer limite) {
 
         if (limite == null || limite < 0) {
+
             throw new IllegalArgumentException(
                     "El limite no puede ser negativo");
         }
 
-        return productoRepository.findByStockLessThanEqual(limite)
+        return productoRepository
+                .findByStockLessThanEqual(limite)
                 .stream()
                 .map(this::convertirDTO)
                 .toList();
     }
 
-
+    // Obtener un producto existente
     private Producto obtenerProducto(Long id) {
+
         return productoRepository.findById(id)
                 .orElseThrow(() ->
                         new RecursoNoEncontradoException(
@@ -136,7 +171,9 @@ public class ProductoService {
                 );
     }
 
+    // Obtener una categoria existente
     private Categoria obtenerCategoria(Long id) {
+
         return categoriaRepository.findById(id)
                 .orElseThrow(() ->
                         new RecursoNoEncontradoException(
@@ -145,6 +182,7 @@ public class ProductoService {
                 );
     }
 
+    // Convertir entidad Producto a DTO de respuesta
     private ProductoResponseDTO convertirDTO(Producto producto) {
 
         return new ProductoResponseDTO(
