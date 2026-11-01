@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -16,15 +15,104 @@
 
 <main>
 
+    <!-- PANEL PRINCIPAL -->
     <section>
         <h2>Panel principal</h2>
         <p>Bienvenido al sistema de administración del vivero.</p>
         <p id="mensaje">Cargando información...</p>
     </section>
 
+    <!-- ADMINISTRACION DE CATEGORIAS -->
+    <section>
+        <h2>Administración de categorías</h2>
+
+        <form id="formCategoria">
+            <input type="hidden" id="categoriaEditarId">
+
+            <label for="categoriaNombre">Nombre:</label>
+            <input type="text" id="categoriaNombre"
+                   maxlength="100" required>
+
+            <button type="submit" id="btnGuardarCategoria">
+                Guardar categoría
+            </button>
+
+            <button type="button" id="btnCancelarCategoria">
+                Cancelar edición
+            </button>
+        </form>
+
+        <p id="resultadoCategoria" role="status"></p>
+
+        <button type="button" id="btnCategorias">
+            Actualizar categorías
+        </button>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Categoría</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tablaCategorias"></tbody>
+        </table>
+    </section>
+
+    <!-- ADMINISTRACION DE PRODUCTOS -->
+    <section>
+        <h2>Administración de productos</h2>
+
+        <form id="formProducto">
+            <input type="hidden" id="productoEditarId">
+
+            <label for="productoCodigo">Código:</label>
+            <input type="text" id="productoCodigo"
+                   maxlength="30" required>
+
+            <label for="productoNombre">Nombre:</label>
+            <input type="text" id="productoNombre"
+                   maxlength="100" required>
+
+            <label for="productoPrecio">Precio (Q):</label>
+            <input type="number" id="productoPrecio"
+                   min="0.01" step="0.01" required>
+
+            <label for="productoStock">Stock inicial:</label>
+            <input type="number" id="productoStock"
+                   min="0" step="1" required>
+
+            <small id="ayudaStock">
+                El stock inicial se utiliza al registrar un producto.
+                Los ajustes posteriores se realizan mediante
+                movimientos de inventario.
+            </small>
+
+            <label for="productoCategoriaId">Categoría:</label>
+            <select id="productoCategoriaId" required>
+                <option value="">Seleccione una categoría</option>
+            </select>
+
+            <button type="submit" id="btnGuardarProducto">
+                Guardar producto
+            </button>
+
+            <button type="button" id="btnCancelarProducto">
+                Cancelar edición
+            </button>
+        </form>
+
+        <p id="resultadoProducto" role="status"></p>
+    </section>
+
+    <!-- LISTADO DE PRODUCTOS -->
     <section>
         <h2>Productos disponibles</h2>
-        <button id="btnProductos">Actualizar productos</button>
+
+        <button type="button" id="btnProductos">
+            Actualizar productos
+        </button>
 
         <table>
             <thead>
@@ -34,41 +122,122 @@
                 <th>Precio</th>
                 <th>Stock</th>
                 <th>Estado</th>
+                <th>Acciones</th>
             </tr>
             </thead>
             <tbody id="tablaProductos"></tbody>
         </table>
     </section>
 
+    <!-- MOVIMIENTOS DE INVENTARIO -->
+    <section>
+        <h2>Movimientos de inventario</h2>
+
+        <form id="formMovimiento">
+            <label for="movimientoProductoId">Producto:</label>
+            <select id="movimientoProductoId" required>
+                <option value="">Seleccione un producto</option>
+            </select>
+
+            <label for="movimientoTipo">Tipo:</label>
+            <select id="movimientoTipo" required>
+                <option value="ENTRADA">Entrada</option>
+                <option value="SALIDA">Salida</option>
+            </select>
+
+            <label for="movimientoCantidad">Cantidad:</label>
+            <input type="number" id="movimientoCantidad"
+                   min="1" step="1" required>
+
+            <label for="movimientoMotivo">Motivo:</label>
+            <input type="text" id="movimientoMotivo"
+                   maxlength="255" required>
+
+            <button type="submit">Registrar movimiento</button>
+        </form>
+
+        <p id="resultadoMovimiento" role="status"></p>
+
+        <label for="historialProductoId">Consultar historial:</label>
+        <select id="historialProductoId">
+            <option value="">Seleccione un producto</option>
+        </select>
+
+        <button type="button" id="btnHistorial">
+            Consultar historial
+        </button>
+
+        <div id="listaMovimientos"></div>
+    </section>
+
+    <!-- REGISTRAR VENTA MULTIPLE -->
     <section>
         <h2>Registrar venta</h2>
 
-        <form id="formVenta">
-            <label for="productoId">ID del producto:</label>
-            <input type="number" id="productoId" min="1" required>
+        <p>Agregue uno o varios productos a la venta.</p>
+
+        <form id="formAgregarArticulo">
+            <label for="productoId">Producto:</label>
+            <select id="productoId" required>
+                <option value="">Seleccione un producto</option>
+            </select>
 
             <label for="cantidad">Cantidad:</label>
-            <input type="number" id="cantidad" min="1" required>
+            <input type="number" id="cantidad"
+                   min="1" step="1" required>
 
-            <button type="submit">Registrar venta</button>
+            <button type="submit">Agregar artículo</button>
         </form>
 
-        <p id="resultadoVenta"></p>
+        <h3>Artículos de la venta</h3>
+
+        <table>
+            <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Subtotal</th>
+                <th>Acción</th>
+            </tr>
+            </thead>
+            <tbody id="tablaCarrito"></tbody>
+        </table>
+
+        <h3 id="totalCarrito">Total estimado: Q0.00</h3>
+
+        <button type="button" id="btnRegistrarVenta">
+            Confirmar venta
+        </button>
+
+        <button type="button" id="btnLimpiarCarrito">
+            Vaciar artículos
+        </button>
+
+        <p id="resultadoVenta" role="status"></p>
     </section>
 
+    <!-- VENTAS REGISTRADAS -->
     <section>
         <h2>Ventas registradas</h2>
-        <button id="btnVentas">Consultar ventas</button>
+
+        <button type="button" id="btnVentas">
+            Consultar ventas
+        </button>
+
         <div id="listaVentas"></div>
     </section>
 
+    <!-- TOTAL VENDIDO POR FECHA -->
     <section>
         <h2>Total vendido por fecha</h2>
 
         <label for="fechaConsulta">Seleccionar fecha:</label>
         <input type="date" id="fechaConsulta">
 
-        <button id="btnTotal">Consultar total</button>
+        <button type="button" id="btnTotal">
+            Consultar total
+        </button>
+
         <h3 id="totalDia">Total: Q0.00</h3>
     </section>
 
