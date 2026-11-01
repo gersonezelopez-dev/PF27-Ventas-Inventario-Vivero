@@ -1,116 +1,623 @@
+
 const API = "/api";
 
-// Mostrar mensajes en la pantalla
-function mostrarMensaje(elementoId, mensaje, esError = false) {
-    const elemento = document.getElementById(elementoId);
+let categorias = [];
+let productos = [];
+let carrito = [];
+let guardandoVenta = false;
 
-    if (elemento) {
-        elemento.textContent = mensaje;
-        elemento.style.color = esError ? "#b42318" : "#176b40";
-    }
+// Utilidades generales
+const elemento = id => document.getElementById(id);
+
+function dinero(valor) {
+    return `Q${Number(valor).toFixed(2)}`;
 }
 
-// Obtener mensajes de las respuestas HTTP
+function mostrarMensaje(id, mensaje, error = false) {
+    const destino = elemento(id);
+    if (!destino) return;
+
+    destino.textContent = mensaje;
+    destino.style.color = error ? "#b42318" : "#176b40";
+}
+
 async function solicitar(url, opciones = {}) {
     const respuesta = await fetch(url, opciones);
-
     const datos = await respuesta.json().catch(() => null);
 
     if (!respuesta.ok) {
+        const errores = datos?.errores
+            ? " - " + Object.values(datos.errores).join(", ")
+            : "";
+
         throw new Error(
-            datos?.mensaje || `Error HTTP ${respuesta.status}`
+            (datos?.mensaje || `Error HTTP ${respuesta.status}`) +
+            errores
         );
     }
 
     return datos;
 }
 
-// Consultar productos
-async function cargarProductos() {
-    const tabla = document.getElementById("tablaProductos");
+function opcionesJSON(metodo, datos) {
+    return {
+        method: metodo,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(datos)
+    };
+}
 
-    try {
-        mostrarMensaje("mensaje", "Consultando inventario...");
+function crearCelda(fila, valor) {
+    const celda = document.createElement("td");
+    celda.textContent = String(valor ?? "");
+    fila.appendChild(celda);
+    return celda;
+}
 
-        const productos = await solicitar(`${API}/productos`);
+function crearBoton(texto, accion) {
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.textContent = texto;
+    boton.addEventListener("click", accion);
+    return boton;
+}
 
-        tabla.replaceChildren();
+function llenarSelect(id, datos, texto, soloActivos = false) {
+    const select = elemento(id);
+    const anterior = select.value;
 
-        productos.forEach(producto => {
-            const fila = document.createElement("tr");
+    select.replaceChildren();
 
-            const valores = [
-                producto.id,
-                producto.nombre,
-                `Q${Number(producto.precio).toFixed(2)}`,
-                producto.stock,
-                producto.activo ? "Activo" : "Inactivo"
-            ];
+    const inicial = document.createElement("option");
+    inicial.value = "";
+    inicial.textContent = "Seleccione una opción";
+    select.appendChild(inicial);
 
-            valores.forEach(valor => {
-                const celda = document.createElement("td");
-                celda.textContent = valor;
-                fila.appendChild(celda);
-            });
-
-            tabla.appendChild(fila);
+    datos
+        .filter(item => !soloActivos || item.activo === true)
+        .forEach(item => {
+            const opcion = document.createElement("option");
+            opcion.value = item.id;
+            opcion.textContent = texto(item);
+            select.appendChild(opcion);
         });
 
-        mostrarMensaje(
-            "mensaje",
-            `Se encontraron ${productos.length} productos.`
-        );
-
-    } catch (error) {
-        mostrarMensaje("mensaje", error.message, true);
+    if ([...select.options].some(op => op.value === anterior)) {
+        select.value = anterior;
     }
 }
 
-// Registrar una venta
-async function registrarVenta(evento) {
+// ==================================================
+// CATEGORÍAS
+// ==================================================
+
+async function cargarCategorias() {
+    try {
+        categorias = await solicitar(`${API}/categorias`);
+
+        const tabla = elemento("tablaCategorias");
+        tabla.replaceChildren();
+
+        categorias.forEach(categoria => {
+            const fila = document.createElement("tr");
+
+            crearCelda(fila, categoria.id);
+            crearCelda(fila, categoria.nombre);
+
+            const acciones = document.createElement("td");
+
+            acciones.appendChild(
+                crearBoton("Editar", () => editarCategoria(categoria))
+            );
+
+            acciones.appendChild(
+                crearBoton("Eliminar", () => eliminarCategoria(categoria.id))
+            );
+
+            fila.appendChild(acciones);
+            tabla.appendChild(fila);
+        });
+
+        llenarSelect(
+            "productoCategoriaId",
+            categorias,
+            categoria => categoria.nombre
+        );
+
+        return categorias;
+
+    } catch (error) {
+        mostrarMensaje("resultadoCategoria", error.message, true);
+        return [];
+    }
+}
+
+function editarCategoria(categoria) {
+    elemento("categoriaEditarId").value = categoria.id;
+    elemento("categoriaNombre").value = categoria.nombre;
+    elemento("btnGuardarCategoria").textContent = "Actualizar categoría";
+    mostrarMensaje(
+        "resultadoCategoria",
+        `Editando categoría #${categoria.id}`
+    );
+}
+
+function cancelarCategoria() {
+    elemento("formCategoria").reset();
+    elemento("categoriaEditarId").value = "";
+    elemento("btnGuardarCategoria").textContent = "Guardar categoría";
+}
+
+async function guardarCategoria(evento) {
     evento.preventDefault();
 
-    const productoId = Number(
-        document.getElementById("productoId").value
-    );
+    const id = elemento("categoriaEditarId").value;
+    const nombre = elemento("categoriaNombre").value.trim();
 
-    const cantidad = Number(
-        document.getElementById("cantidad").value
-    );
-
-    if (!Number.isInteger(productoId) || productoId <= 0 ||
-        !Number.isInteger(cantidad) || cantidad <= 0) {
-
+    if (!nombre) {
         mostrarMensaje(
-            "resultadoVenta",
-            "Ingrese un producto y una cantidad válidos.",
+            "resultadoCategoria",
+            "Ingrese el nombre de la categoría.",
             true
         );
         return;
     }
 
     try {
-        const venta = await solicitar(`${API}/ventas`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                detalles: [
-                    {
-                        productoId: productoId,
-                        cantidad: cantidad
-                    }
-                ]
-            })
+        const url = id
+            ? `${API}/categorias/${id}`
+            : `${API}/categorias`;
+
+        await solicitar(
+            url,
+            opcionesJSON(id ? "PUT" : "POST", { nombre })
+        );
+
+        cancelarCategoria();
+        await cargarCategorias();
+
+        mostrarMensaje(
+            "resultadoCategoria",
+            "Categoría guardada correctamente."
+        );
+
+    } catch (error) {
+        mostrarMensaje("resultadoCategoria", error.message, true);
+    }
+}
+
+async function eliminarCategoria(id) {
+    if (!confirm(`¿Desea eliminar la categoría #${id}?`)) return;
+
+    try {
+        await solicitar(`${API}/categorias/${id}`, {
+            method: "DELETE"
         });
+
+        await cargarCategorias();
+        mostrarMensaje(
+            "resultadoCategoria",
+            "Categoría eliminada correctamente."
+        );
+
+    } catch (error) {
+        mostrarMensaje(
+            "resultadoCategoria",
+            error.message,
+            true
+        );
+    }
+}
+
+// ==================================================
+// PRODUCTOS
+// ==================================================
+
+async function cargarProductos() {
+    try {
+        mostrarMensaje("mensaje", "Consultando inventario...");
+
+        productos = await solicitar(`${API}/productos`);
+
+        const tabla = elemento("tablaProductos");
+        tabla.replaceChildren();
+
+        productos.forEach(producto => {
+            const fila = document.createElement("tr");
+
+            crearCelda(fila, producto.id);
+            crearCelda(fila, producto.nombre);
+            crearCelda(fila, dinero(producto.precio));
+            crearCelda(fila, producto.stock);
+            crearCelda(
+                fila,
+                producto.activo ? "Activo" : "Inactivo"
+            );
+
+            const acciones = document.createElement("td");
+
+            acciones.appendChild(
+                crearBoton("Editar", () => editarProducto(producto))
+            );
+
+            if (producto.activo) {
+                acciones.appendChild(
+                    crearBoton(
+                        "Desactivar",
+                        () => desactivarProducto(producto.id)
+                    )
+                );
+            }
+
+            fila.appendChild(acciones);
+            tabla.appendChild(fila);
+        });
+
+        llenarSelect(
+            "productoId",
+            productos,
+            p => `${p.nombre} - ${dinero(p.precio)} (stock: ${p.stock})`,
+            true
+        );
+
+        llenarSelect(
+            "movimientoProductoId",
+            productos,
+            p => `${p.nombre} (stock: ${p.stock})`,
+            true
+        );
+
+        llenarSelect(
+            "historialProductoId",
+            productos,
+            p => p.nombre
+        );
+
+        mostrarMensaje(
+            "mensaje",
+            `Se encontraron ${productos.length} productos.`
+        );
+
+        dibujarCarrito();
+
+    } catch (error) {
+        mostrarMensaje("mensaje", error.message, true);
+    }
+}
+
+function editarProducto(producto) {
+    elemento("productoEditarId").value = producto.id;
+    elemento("productoCodigo").value = producto.codigo;
+    elemento("productoNombre").value = producto.nombre;
+    elemento("productoPrecio").value = producto.precio;
+    elemento("productoStock").value = producto.stock;
+    elemento("productoCategoriaId").value = producto.categoriaId;
+
+    // El stock no puede editarse desde PUT /api/productos
+    elemento("productoStock").readOnly = true;
+
+    elemento("btnGuardarProducto").textContent = "Actualizar producto";
+
+    mostrarMensaje(
+        "resultadoProducto",
+        "Para cambiar existencias utilice movimientos de inventario."
+    );
+}
+
+function cancelarProducto() {
+    elemento("formProducto").reset();
+    elemento("productoEditarId").value = "";
+    elemento("productoStock").readOnly = false;
+    elemento("btnGuardarProducto").textContent = "Guardar producto";
+}
+
+async function guardarProducto(evento) {
+    evento.preventDefault();
+
+    const id = elemento("productoEditarId").value;
+
+    const codigo = elemento("productoCodigo").value.trim();
+    const nombre = elemento("productoNombre").value.trim();
+    const precio = Number(elemento("productoPrecio").value);
+    const categoriaId = Number(elemento("productoCategoriaId").value);
+
+    let stock;
+
+    if (id) {
+        // Consultar stock actualizado para no modificarlo por PUT
+        try {
+            const actual = await solicitar(`${API}/productos/${id}`);
+            stock = actual.stock;
+        } catch (error) {
+            mostrarMensaje("resultadoProducto", error.message, true);
+            return;
+        }
+    } else {
+        stock = Number(elemento("productoStock").value);
+    }
+
+    if (!codigo || !nombre || !Number.isFinite(precio) ||
+        precio <= 0 || !Number.isInteger(stock) || stock < 0 ||
+        !Number.isInteger(categoriaId) || categoriaId <= 0) {
+
+        mostrarMensaje(
+            "resultadoProducto",
+            "Revise el código, nombre, precio, stock y categoría.",
+            true
+        );
+        return;
+    }
+
+    try {
+        const datos = {
+            codigo,
+            nombre,
+            precio,
+            stock,
+            categoriaId
+        };
+
+        await solicitar(
+            id ? `${API}/productos/${id}` : `${API}/productos`,
+            opcionesJSON(id ? "PUT" : "POST", datos)
+        );
+
+        cancelarProducto();
+        await cargarProductos();
+
+        mostrarMensaje(
+            "resultadoProducto",
+            "Producto guardado correctamente."
+        );
+
+    } catch (error) {
+        mostrarMensaje("resultadoProducto", error.message, true);
+    }
+}
+
+async function desactivarProducto(id) {
+    if (!confirm(`¿Desea desactivar el producto #${id}?`)) return;
+
+    try {
+        await solicitar(`${API}/productos/${id}/desactivar`, {
+            method: "PATCH"
+        });
+
+        await cargarProductos();
+
+        mostrarMensaje(
+            "resultadoProducto",
+            `Producto #${id} desactivado correctamente.`
+        );
+
+    } catch (error) {
+        mostrarMensaje("resultadoProducto", error.message, true);
+    }
+}
+
+// ==================================================
+// MOVIMIENTOS DE INVENTARIO
+// ==================================================
+
+async function registrarMovimiento(evento) {
+    evento.preventDefault();
+
+    const productoId = Number(elemento("movimientoProductoId").value);
+    const tipo = elemento("movimientoTipo").value;
+    const cantidad = Number(elemento("movimientoCantidad").value);
+    const motivo = elemento("movimientoMotivo").value.trim();
+
+    if (!Number.isInteger(productoId) || productoId <= 0 ||
+        !Number.isInteger(cantidad) || cantidad <= 0 ||
+        !motivo || !["ENTRADA", "SALIDA"].includes(tipo)) {
+
+        mostrarMensaje(
+            "resultadoMovimiento",
+            "Complete correctamente todos los campos.",
+            true
+        );
+        return;
+    }
+
+    try {
+        const resultado = await solicitar(
+            `${API}/movimientos`,
+            opcionesJSON("POST", {
+                productoId,
+                tipo,
+                cantidad,
+                motivo
+            })
+        );
+
+        mostrarMensaje(
+            "resultadoMovimiento",
+            `Movimiento #${resultado.id} registrado. ` +
+            `Stock: ${resultado.stockAnterior} → ${resultado.stockNuevo}`
+        );
+
+        elemento("formMovimiento").reset();
+
+        await cargarProductos();
+        elemento("historialProductoId").value = productoId;
+        await consultarHistorial();
+
+    } catch (error) {
+        mostrarMensaje(
+            "resultadoMovimiento",
+            error.message,
+            true
+        );
+    }
+}
+
+async function consultarHistorial() {
+    const productoId = Number(elemento("historialProductoId").value);
+    const contenedor = elemento("listaMovimientos");
+
+    contenedor.replaceChildren();
+
+    if (!productoId) {
+        contenedor.textContent = "Seleccione un producto.";
+        return;
+    }
+
+    try {
+        const movimientos = await solicitar(
+            `${API}/movimientos/producto/${productoId}`
+        );
+
+        if (movimientos.length === 0) {
+            contenedor.textContent = "No hay movimientos registrados.";
+            return;
+        }
+
+        movimientos.forEach(movimiento => {
+            const tarjeta = document.createElement("div");
+
+            tarjeta.textContent =
+                `${movimiento.tipo} | ` +
+                `Cantidad: ${movimiento.cantidad} | ` +
+                `Stock: ${movimiento.stockAnterior} → ` +
+                `${movimiento.stockNuevo} | ` +
+                `Motivo: ${movimiento.motivo}`;
+
+            contenedor.appendChild(tarjeta);
+        });
+
+    } catch (error) {
+        contenedor.textContent = error.message;
+    }
+}
+
+// ==================================================
+// VENTAS CON VARIOS ARTÍCULOS
+// ==================================================
+
+function agregarArticulo(evento) {
+    evento.preventDefault();
+
+    const productoId = Number(elemento("productoId").value);
+    const cantidad = Number(elemento("cantidad").value);
+
+    const producto = productos.find(p => p.id === productoId);
+
+    if (!producto || !producto.activo) {
+        mostrarMensaje(
+            "resultadoVenta",
+            "Seleccione un producto activo.",
+            true
+        );
+        return;
+    }
+
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+        mostrarMensaje(
+            "resultadoVenta",
+            "La cantidad debe ser mayor que cero.",
+            true
+        );
+        return;
+    }
+
+    const existente = carrito.find(p => p.productoId === productoId);
+    const acumulada = (existente?.cantidad || 0) + cantidad;
+
+    if (acumulada > producto.stock) {
+        mostrarMensaje(
+            "resultadoVenta",
+            "La cantidad supera las existencias disponibles.",
+            true
+        );
+        return;
+    }
+
+    if (existente) {
+        existente.cantidad = acumulada;
+    } else {
+        carrito.push({ productoId, cantidad });
+    }
+
+    elemento("formAgregarArticulo").reset();
+    mostrarMensaje("resultadoVenta", "Artículo agregado a la venta.");
+    dibujarCarrito();
+}
+
+function eliminarArticulo(productoId) {
+    carrito = carrito.filter(p => p.productoId !== productoId);
+    dibujarCarrito();
+}
+
+function dibujarCarrito() {
+    const tabla = elemento("tablaCarrito");
+    tabla.replaceChildren();
+
+    let total = 0;
+
+    carrito.forEach(item => {
+        const producto = productos.find(p => p.id === item.productoId);
+        const precio = Number(producto?.precio || 0);
+        const subtotal = precio * item.cantidad;
+
+        total += subtotal;
+
+        const fila = document.createElement("tr");
+
+        crearCelda(fila, producto?.nombre || `Producto #${item.productoId}`);
+        crearCelda(fila, item.cantidad);
+        crearCelda(fila, dinero(subtotal));
+
+        const acciones = document.createElement("td");
+        acciones.appendChild(
+            crearBoton(
+                "Quitar",
+                () => eliminarArticulo(item.productoId)
+            )
+        );
+
+        fila.appendChild(acciones);
+        tabla.appendChild(fila);
+    });
+
+    elemento("totalCarrito").textContent =
+        `Total estimado: ${dinero(total)}`;
+}
+
+async function registrarVenta() {
+    if (guardandoVenta) return;
+
+    if (carrito.length === 0) {
+        mostrarMensaje(
+            "resultadoVenta",
+            "Agregue al menos un artículo.",
+            true
+        );
+        return;
+    }
+
+    if (!confirm("¿Desea confirmar esta venta?")) return;
+
+    guardandoVenta = true;
+    elemento("btnRegistrarVenta").disabled = true;
+
+    try {
+        const venta = await solicitar(
+            `${API}/ventas`,
+            opcionesJSON("POST", {
+                detalles: carrito.map(item => ({
+                    productoId: item.productoId,
+                    cantidad: item.cantidad
+                }))
+            })
+        );
+
+        carrito = [];
+        dibujarCarrito();
 
         mostrarMensaje(
             "resultadoVenta",
-            `Venta ${venta.id} registrada. Total: Q${Number(venta.total).toFixed(2)}`
+            `Venta #${venta.id} registrada. Total: ${dinero(venta.total)}`
         );
-
-        document.getElementById("formVenta").reset();
 
         await cargarProductos();
         await cargarVentas();
@@ -118,43 +625,68 @@ async function registrarVenta(evento) {
 
     } catch (error) {
         mostrarMensaje("resultadoVenta", error.message, true);
+    } finally {
+        guardandoVenta = false;
+        elemento("btnRegistrarVenta").disabled = false;
     }
 }
 
-// Consultar todas las ventas
+function limpiarCarrito() {
+    carrito = [];
+    dibujarCarrito();
+    mostrarMensaje("resultadoVenta", "Artículos eliminados.");
+}
+
+// ==================================================
+// CONSULTAR Y ANULAR VENTAS
+// ==================================================
+
 async function cargarVentas() {
-    const contenedor = document.getElementById("listaVentas");
+    const contenedor = elemento("listaVentas");
 
     try {
         const ventas = await solicitar(`${API}/ventas`);
-
         contenedor.replaceChildren();
 
         if (ventas.length === 0) {
-            contenedor.textContent = "Todavía no hay ventas registradas.";
+            contenedor.textContent = "Todavía no hay ventas.";
             return;
         }
 
         ventas.forEach(venta => {
             const tarjeta = document.createElement("div");
 
-            const informacion = document.createElement("span");
-            informacion.textContent =
+            const encabezado = document.createElement("p");
+            encabezado.textContent =
                 `Venta #${venta.id} | ` +
-                `Total: Q${Number(venta.total).toFixed(2)} | ` +
-                `Estado: ${venta.estado} `;
+                `Total: ${dinero(venta.total)} | ` +
+                `Estado: ${venta.estado}`;
 
-            tarjeta.appendChild(informacion);
+            tarjeta.appendChild(encabezado);
 
-            if (venta.estado === "REGISTRADA") {
-                const boton = document.createElement("button");
-                boton.textContent = "Anular venta";
+            if (Array.isArray(venta.detalles)) {
+                const lista = document.createElement("ul");
 
-                boton.addEventListener("click", () => {
-                    anularVenta(venta.id);
+                venta.detalles.forEach(detalle => {
+                    const linea = document.createElement("li");
+                    linea.textContent =
+                        `${detalle.productoNombre} | ` +
+                        `${detalle.cantidad} unidad(es) | ` +
+                        `Subtotal: ${dinero(detalle.subtotal)}`;
+
+                    lista.appendChild(linea);
                 });
 
-                tarjeta.appendChild(boton);
+                tarjeta.appendChild(lista);
+            }
+
+            if (venta.estado === "REGISTRADA") {
+                tarjeta.appendChild(
+                    crearBoton(
+                        "Anular venta",
+                        () => anularVenta(venta.id)
+                    )
+                );
             }
 
             contenedor.appendChild(tarjeta);
@@ -165,20 +697,15 @@ async function cargarVentas() {
     }
 }
 
-// Anular una venta
 async function anularVenta(id) {
-    const confirmado = confirm(
-        `¿Está seguro de anular la venta #${id}?`
-    );
-
-    if (!confirmado) return;
+    if (!confirm(`¿Desea anular la venta #${id}?`)) return;
 
     try {
         await solicitar(`${API}/ventas/${id}/anular`, {
             method: "PATCH"
         });
 
-        mostrarMensaje("mensaje", `Venta #${id} anulada correctamente.`);
+        mostrarMensaje("mensaje", `Venta #${id} anulada.`);
 
         await cargarProductos();
         await cargarVentas();
@@ -189,13 +716,15 @@ async function anularVenta(id) {
     }
 }
 
-// Consultar total diario
+// ==================================================
+// TOTAL VENDIDO POR FECHA
+// ==================================================
+
 async function consultarTotal() {
-    const fecha = document.getElementById("fechaConsulta").value;
+    const fecha = elemento("fechaConsulta").value;
 
     if (!fecha) {
-        document.getElementById("totalDia").textContent =
-            "Seleccione una fecha.";
+        elemento("totalDia").textContent = "Seleccione una fecha.";
         return;
     }
 
@@ -204,40 +733,70 @@ async function consultarTotal() {
             `${API}/ventas/total-dia?fecha=${encodeURIComponent(fecha)}`
         );
 
-        document.getElementById("totalDia").textContent =
-            `Total: Q${Number(resultado.totalVendido).toFixed(2)}`;
+        elemento("totalDia").textContent =
+            `Total: ${dinero(resultado.totalVendido)}`;
 
     } catch (error) {
-        document.getElementById("totalDia").textContent =
+        elemento("totalDia").textContent =
             `Error: ${error.message}`;
     }
 }
 
-// Preparar la página al abrirla
-document.addEventListener("DOMContentLoaded", () => {
+// ==================================================
+// INICIAR LA INTERFAZ
+// ==================================================
 
-    // Fecha local en formato AAAA-MM-DD
-    const fechaActual = new Date();
-    const anio = fechaActual.getFullYear();
-    const mes = String(fechaActual.getMonth() + 1).padStart(2, "0");
-    const dia = String(fechaActual.getDate()).padStart(2, "0");
+document.addEventListener("DOMContentLoaded", async () => {
 
-    document.getElementById("fechaConsulta").value =
-        `${anio}-${mes}-${dia}`;
+    const hoy = new Date();
 
-    document.getElementById("btnProductos")
+    const anio = hoy.getFullYear();
+    const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoy.getDate()).padStart(2, "0");
+
+    elemento("fechaConsulta").value = `${anio}-${mes}-${dia}`;
+
+    elemento("formCategoria")
+        .addEventListener("submit", guardarCategoria);
+
+    elemento("btnCategorias")
+        .addEventListener("click", cargarCategorias);
+
+    elemento("btnCancelarCategoria")
+        .addEventListener("click", cancelarCategoria);
+
+    elemento("formProducto")
+        .addEventListener("submit", guardarProducto);
+
+    elemento("btnCancelarProducto")
+        .addEventListener("click", cancelarProducto);
+
+    elemento("btnProductos")
         .addEventListener("click", cargarProductos);
 
-    document.getElementById("formVenta")
-        .addEventListener("submit", registrarVenta);
+    elemento("formMovimiento")
+        .addEventListener("submit", registrarMovimiento);
 
-    document.getElementById("btnVentas")
+    elemento("btnHistorial")
+        .addEventListener("click", consultarHistorial);
+
+    elemento("formAgregarArticulo")
+        .addEventListener("submit", agregarArticulo);
+
+    elemento("btnRegistrarVenta")
+        .addEventListener("click", registrarVenta);
+
+    elemento("btnLimpiarCarrito")
+        .addEventListener("click", limpiarCarrito);
+
+    elemento("btnVentas")
         .addEventListener("click", cargarVentas);
 
-    document.getElementById("btnTotal")
+    elemento("btnTotal")
         .addEventListener("click", consultarTotal);
 
-    cargarProductos();
-    cargarVentas();
-    consultarTotal();
+    await cargarCategorias();
+    await cargarProductos();
+    await cargarVentas();
+    await consultarTotal();
 });
