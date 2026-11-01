@@ -1,260 +1,135 @@
-# PF-27 – Sistema de Ventas e Inventario para Vivero Verde
+# 🌿 PF-27 – Ventas e Inventario para Vivero Verde
 
-## 1. Datos generales
+## 1. Datos del estudiante
 
-**Proyecto:** PF-27 – Ventas e Inventario para Vivero Verde
-
-**Estudiante:** Gerson Ezequiel López Enríquez
-
-**Número de carné:** 9941-25-22144
-
-**Universidad:** Universidad Mariano Gálvez de Guatemala
-
-**Carrera:** Ingeniería en Sistemas
+**Nombre completo:** Gerson Ezequiel López Enríquez  
+**Número de carné:** 9941-25-22144  
+**Proyecto asignado:** PF-27 – Ventas e Inventario para Vivero Verde
 
 ## 2. Descripción del problema
 
-Un vivero enfrenta dificultades para gestionar sus productos, existencias y ventas al realizar estos procesos 
-de forma manual. Esto genera errores en el inventario, ventas de productos sin stock disponible y falta de 
-claridad sobre las ganancias obtenidas. Además, la ausencia de un registro organizado complica consultar el 
-historial de operaciones o gestionar la anulación de una venta.
+Los viveros necesitan mantener un control adecuado de sus productos, existencias y ventas. Cuando estos 
+procesos se realizan manualmente, pueden presentarse errores en el inventario, dificultades para consultar 
+las ventas y problemas para conocer los productos disponibles.
 
-Para solucionar esta situación, se diseñó una aplicación de ventas e inventario que permite organizar los 
-productos por categorías, controlar el stock en tiempo real, registrar las ventas y consultar los ingresos 
-diarios. Con esta herramienta, el vivero logra automatizar sus operaciones, mejorar la organización de la 
-información y reducir los errores diarios.
+Para atender estas necesidades, se desarrolló Vivero Verde, un sistema que permite administrar categorías, 
+productos, ventas y movimientos de inventario de manera organizada.
+
 ## 3. Tecnologías utilizadas
 
-- Java 21.
-- Spring Boot 4.0.8.
-- Spring Web.
-- Spring Data JPA.
-- Hibernate.
-- PostgreSQL.
-- Maven.
-- IntelliJ IDEA.
-- Postman.
-- Git y GitHub.
-
-Las tecnologías específicas del frontend deberán incorporarse según los archivos de la interfaz desarrollada.
+- Java y Spring Boot para el backend.
+- PostgreSQL para almacenar la información.
+- HTML, CSS y JavaScript para la interfaz web.
+- Postman para realizar pruebas de la API.
+- IntelliJ IDEA para el desarrollo.
+- GitHub para almacenar el proyecto.
 
 ## 4. Estructura general del sistema
 
-La aplicación backend utiliza una arquitectura organizada por capas.
+El sistema está organizado en diferentes componentes:
 
-**Controller:** recibe las solicitudes HTTP y proporciona los endpoints REST.
+- **Controller:** recibe las solicitudes del usuario.
+- **Service:** contiene las reglas del negocio.
+- **Repository:** permite consultar y guardar los datos.
+- **Entity:** representa las tablas de PostgreSQL.
+- **DTO:** organiza la información que recibe y devuelve la API.
+- **Frontend:** permite utilizar el sistema desde un navegador.
 
-**Service:** contiene las validaciones, reglas del negocio y operaciones de inventario.
-
-**Repository:** realiza el acceso a PostgreSQL mediante Spring Data JPA.
-
-**Entity:** representa las entidades de la base de datos.
-
-**DTO:** permite recibir y transferir información entre el cliente y la API.
-
-**Exception:** centraliza el manejo de excepciones y las respuestas de error.
-
-El paquete principal del backend es:
-
-`com.vivero.pf27`
-
-Las entidades principales son:
-
-- Categoria.
-- Producto.
-- Venta.
-- DetalleVenta.
+La aplicación incluye las funciones de administración de categorías, productos, ventas y movimientos de 
+inventario.
 
 ## 5. Requisitos para ejecutar el proyecto
 
-Se necesita contar con:
+Para utilizar el sistema se necesita:
 
-- JDK 21.
-- PostgreSQL instalado y funcionando.
-- IntelliJ IDEA u otro entorno compatible.
-- Maven Wrapper incluido en el proyecto.
-- Un navegador web para acceder al frontend.
-- Postman para realizar pruebas a la API.
+- Java instalado y compatible con el proyecto.
+- IntelliJ IDEA o un entorno compatible.
+- PostgreSQL.
+- Una base de datos llamada `vivero_pf27`.
+- Un navegador web.
 
 ## 6. Configuración de PostgreSQL
 
-La aplicación utiliza una base de datos PostgreSQL.
+El sistema utiliza PostgreSQL para almacenar las categorías, los productos, las ventas y los movimientos de 
+inventario.
 
-Nombre de la base de datos de desarrollo:
+La base de datos debe llamarse `vivero_pf27`.
 
-`vivero_pf27`
+Se deben ejecutar los scripts SQL incluidos en el proyecto para crear las tablas y preparar los datos 
+necesarios.
 
-Dirección de conexión:
-
-`jdbc:postgresql://localhost:5432/vivero_pf27`
-
-Usuario configurado:
-
-`postgres`
-
-Las tablas principales son:
-
-- `categoria`
-- `producto`
-- `venta`
-- `detalle_venta`
-
-Antes de ejecutar la aplicación, es necesario crear o restaurar la estructura de la base de datos.
-
-La contraseña se configura mediante una variable de entorno y no debe guardarse en el repositorio.
-
-En PowerShell:
-
-```powershell
-$env:DB_PASSWORD = Read-Host "Contraseña PostgreSQL"
-```
+La conexión se configura en `application.properties`. La contraseña de PostgreSQL se proporciona mediante 
+la variable de entorno `DB_PASSWORD`, evitando incluirla directamente en el código.
 
 ## 7. Instrucciones para iniciar el backend
 
-**Paso 1:** Abrir el proyecto en IntelliJ IDEA.
-
-**Paso 2:** Ubicarse en la carpeta Maven `pf27-vivero`.
-
-**Paso 3:** Verificar que PostgreSQL esté funcionando y que la variable `DB_PASSWORD` esté configurada.
-
-**Paso 4:** Compilar el proyecto:
-
-```powershell
-.\mvnw.cmd clean compile
-```
-
-**Paso 5:** Iniciar Spring Boot:
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-Cuando la aplicación inicia correctamente, el servidor queda disponible en:
-
-`http://localhost:8080`
+1. Iniciar PostgreSQL.
+2. Abrir el proyecto `pf27-vivero` en IntelliJ IDEA.
+3. Comprobar que la base de datos esté configurada.
+4. Configurar la variable de entorno `DB_PASSWORD` con la contraseña local de PostgreSQL.
+5. Ejecutar la aplicación Spring Boot.
+6. Verificar que la aplicación inicie correctamente en el puerto `8080`.
 
 ## 8. Instrucciones para abrir el frontend
 
-El frontend permite interactuar con las funcionalidades del sistema mediante una interfaz visual.
+Una vez iniciado el backend:
 
-Para utilizarlo, primero debe estar ejecutándose el backend Spring Boot y debe existir una conexión funcional 
-con PostgreSQL.
+1. Abrir Google Chrome u otro navegador.
+2. Ingresar a la dirección:
 
-**Pendiente de completar con la implementación real:** indicar la ubicación del archivo principal del frontend,
-la tecnología utilizada y el procedimiento exacto para abrirlo.
+   http://localhost:8080/index.html
 
-No debe afirmarse que la interfaz funciona hasta verificar su conexión con la API y sus operaciones.
+3. Utilizar la interfaz para administrar categorías, productos, inventario y ventas.
 
 ## 9. Descripción de los endpoints
 
-### Categorías
-
-| Método | Endpoint | Descripción |
+| Método | Endpoint | Función |
 |---|---|---|
 | GET | `/api/categorias` | Consultar categorías |
-| GET | `/api/categorias/{id}` | Buscar categoría por ID |
 | POST | `/api/categorias` | Registrar categoría |
 | PUT | `/api/categorias/{id}` | Actualizar categoría |
 | DELETE | `/api/categorias/{id}` | Eliminar categoría |
-
-### Productos
-
-| Método | Endpoint | Descripción |
-|---|---|---|
 | GET | `/api/productos` | Consultar productos |
-| GET | `/api/productos/{id}` | Buscar producto por ID |
 | POST | `/api/productos` | Registrar producto |
 | PUT | `/api/productos/{id}` | Actualizar producto |
 | PATCH | `/api/productos/{id}/desactivar` | Desactivar producto |
-| GET | `/api/productos/categoria/{categoriaId}` | Consultar productos por categoría |
-| GET | `/api/productos/stock-bajo?limite=5` | Consultar productos con pocas existencias |
-
-### Ventas
-
-| Método | Endpoint | Descripción |
-|---|---|---|
 | GET | `/api/ventas` | Consultar ventas |
-| GET | `/api/ventas/{id}` | Buscar venta por ID |
 | POST | `/api/ventas` | Registrar venta |
 | PATCH | `/api/ventas/{id}/anular` | Anular venta |
-| GET | `/api/ventas/fecha?fecha=2026-10-25` | Consultar ventas por fecha |
-| GET | `/api/ventas/total-dia?fecha=2026-10-25` | Calcular total vendido por fecha |
-
-### Ejemplo de registro de una venta
-
-Método: `POST`
-
-URL: `http://localhost:8080/api/ventas`
-
-Cuerpo JSON:
-
-```json
-{
-  "detalles": [
-    {
-      "productoId": 1,
-      "cantidad": 2
-    }
-  ]
-}
-```
+| GET | `/api/ventas/total-dia?fecha=AAAA-MM-DD` | Consultar total vendido por fecha |
+| POST | `/api/movimientos` | Registrar movimiento |
+| GET | `/api/movimientos/producto/{id}` | Consultar historial de inventario |
 
 ## 10. Reglas principales del negocio
 
-**Administración de productos:** el sistema permite registrar, consultar, actualizar y desactivar productos.
+El sistema aplica las siguientes reglas:
 
-**Validación del inventario:** no se permite vender cantidades superiores a las existencias disponibles.
+- Los productos deben tener un precio mayor que cero.
+- Las existencias no pueden ser negativas.
+- No se permiten códigos de productos duplicados.
+- Únicamente pueden venderse productos activos.
+- No se permiten ventas con cantidades inválidas o sin artículos.
+- Una venta puede contener varios productos.
+- Al registrar una venta se descuentan automáticamente las existencias.
+- No se puede registrar una venta cuando el stock es insuficiente.
+- Al anular una venta se devuelven las existencias.
+- Una venta no puede anularse dos veces.
+- Los ajustes de inventario se realizan mediante movimientos registrados.
+- El stock inicial de los nuevos productos queda registrado en el historial cuando es mayor que cero.
 
-**Estado del producto:** los productos desactivados no pueden incluirse en una nueva venta.
+## 11. Pruebas y evidencias
 
-**Registro de ventas:** al registrar una venta válida, el sistema calcula el total y descuenta automáticamente 
-las unidades vendidas.
+Se realizaron pruebas de validaciones, excepciones, reglas del negocio y funcionamiento del frontend.
 
-**Anulación de ventas:** una venta registrada puede anularse, restituyendo las existencias al inventario.
+También se realizaron consultas en PostgreSQL para comprobar que la información se almacena correctamente.
 
-**Protección contra anulaciones repetidas:** una venta anulada no puede anularse nuevamente.
+Las solicitudes de la API se encuentran en la carpeta `postman` y las capturas de funcionamiento en `evidencias`.
 
-**Consulta por fecha:** se pueden consultar las ventas correspondientes a un día específico.
+## Conclusión
 
-**Total diario:** se calcula el importe de las ventas registradas, excluyendo las ventas anuladas.
+El proyecto Vivero Verde permitió aplicar los conocimientos adquiridos durante el curso mediante el desarrollo de un sistema de ventas e inventario.
 
-**Persistencia:** los datos se almacenan en PostgreSQL y las operaciones de ventas y anulaciones utilizan 
-transacciones.
-
-## 11. Pruebas realizadas
-
-Se realizaron pruebas funcionales con Postman para comprobar:
-
-- Registro y consulta de categorías.
-- Registro y actualización de productos.
-- Registro de ventas.
-- Descuento de inventario.
-- Rechazo de ventas con stock insuficiente.
-- Rechazo de ventas de productos desactivados.
-- Anulación de ventas.
-- Restauración del inventario.
-- Consulta de ventas por fecha.
-- Cálculo del total diario.
-
-En las pruebas de ventas se comprobó que un producto con 20 unidades disminuía a 18 al vender dos unidades y 
-volvía a 20 después de anular la operación.
-
-También se verificó que el total diario pasaba de Q0.00 a Q50.00 al registrar una venta y regresaba a Q0.00 
-después de anularla.
-
-## 12. Repositorio de GitHub
-
-https://github.com/gersonezelopez-dev/PF27-Ventas-Inventario-Vivero
-
-## 13. Conclusión
-
-El proyecto PF-27 demuestra cómo el uso de la tecnología facilita la gestión de un vivero, integrando desde 
-el control de productos hasta el procesamiento seguro de cada venta. La aplicación permite mantener el
-inventario actualizado en tiempo real, registrar transacciones con precisión y consultar los ingresos de forma 
-clara y rápida. En conjunto, esta solución reduce errores operativos y brinda un control más organizado sobre 
-las actividades diarias del negocio.
-
-
+Su implementación facilita el registro de productos, el control de existencias y la administración de ventas de un vivero.
 
 -----------------------------------------------------------------------------------------------
 ## DTO, validaciones y manejo de errores

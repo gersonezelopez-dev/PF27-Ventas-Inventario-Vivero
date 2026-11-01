@@ -1,11 +1,14 @@
+
 package com.vivero.pf27.service;
 
 import com.vivero.pf27.dto.ProductoRequestDTO;
 import com.vivero.pf27.dto.ProductoResponseDTO;
 import com.vivero.pf27.entity.Categoria;
 import com.vivero.pf27.entity.Producto;
+import com.vivero.pf27.entity.MovimientoInventario;
 import com.vivero.pf27.repository.CategoriaRepository;
 import com.vivero.pf27.repository.ProductoRepository;
+import com.vivero.pf27.repository.MovimientoInventarioRepository;
 import com.vivero.pf27.exception.RecursoNoEncontradoException;
 
 import org.springframework.stereotype.Service;
@@ -18,13 +21,16 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final MovimientoInventarioRepository movimientoRepository;
 
     public ProductoService(
             ProductoRepository productoRepository,
-            CategoriaRepository categoriaRepository) {
+            CategoriaRepository categoriaRepository,
+            MovimientoInventarioRepository movimientoRepository) {
 
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
+        this.movimientoRepository = movimientoRepository;
     }
 
     // Consultar todos los productos
@@ -46,7 +52,7 @@ public class ProductoService {
         return convertirDTO(producto);
     }
 
-    // Registrar un producto
+    // Registrar un producto y su movimiento de stock inicial
     @Transactional
     public ProductoResponseDTO registrar(ProductoRequestDTO dto) {
 
@@ -57,8 +63,7 @@ public class ProductoService {
                     "Ya existe un producto con ese codigo");
         }
 
-        Categoria categoria =
-                obtenerCategoria(dto.getCategoriaId());
+        Categoria categoria = obtenerCategoria(dto.getCategoriaId());
 
         Producto producto = new Producto();
 
@@ -69,10 +74,27 @@ public class ProductoService {
         producto.setActivo(true);
         producto.setCategoria(categoria);
 
-        return convertirDTO(productoRepository.save(producto));
+        Producto productoGuardado = productoRepository.save(producto);
+
+        // Registrar la entrada inicial para conservar trazabilidad
+        if (productoGuardado.getStock() > 0) {
+
+            MovimientoInventario movimiento = new MovimientoInventario();
+
+            movimiento.setProducto(productoGuardado);
+            movimiento.setTipo("ENTRADA");
+            movimiento.setCantidad(productoGuardado.getStock());
+            movimiento.setStockAnterior(0);
+            movimiento.setStockNuevo(productoGuardado.getStock());
+            movimiento.setMotivo("Stock inicial al registrar producto");
+
+            movimientoRepository.save(movimiento);
+        }
+
+        return convertirDTO(productoGuardado);
     }
 
-    // Actualizar informacion del producto sin cambiar stock
+    // Actualizar informacion sin cambiar stock
     @Transactional
     public ProductoResponseDTO actualizar(
             Long id, ProductoRequestDTO dto) {
@@ -88,11 +110,9 @@ public class ProductoService {
                     "Ya existe un producto con ese codigo");
         }
 
-        // Buscar la categoria correspondiente
-        Categoria categoria =
-                obtenerCategoria(dto.getCategoriaId());
+        Categoria categoria = obtenerCategoria(dto.getCategoriaId());
 
-        // Evitar cambios directos de existencias
+        // Prohibir modificaciones directas al inventario
         if (!producto.getStock().equals(dto.getStock())) {
 
             throw new IllegalArgumentException(
@@ -101,7 +121,6 @@ public class ProductoService {
                             "Utilice un movimiento de inventario.");
         }
 
-        // Actualizar datos generales
         producto.setCodigo(codigo);
         producto.setNombre(dto.getNombre().trim());
         producto.setPrecio(dto.getPrecio());
@@ -182,7 +201,7 @@ public class ProductoService {
                 );
     }
 
-    // Convertir entidad Producto a DTO de respuesta
+    // Convertir entidad Producto a DTO
     private ProductoResponseDTO convertirDTO(Producto producto) {
 
         return new ProductoResponseDTO(
